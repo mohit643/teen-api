@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TeenGin Demo Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f4f6fb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .dashboard-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 2.5rem 2rem 2rem 2rem;
+    }
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .dashboard-header img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #e6e6e6;
+      object-fit: cover;
+    }
+    .dashboard-header .user-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d3a4b;
+    }
+    .user-details {
+      margin-top: 1.5rem;
+      background: #f0f4fa;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 1rem;
+      color: #2d3a4b;
+      word-break: break-all;
+    }
+    .logout-btn {
+      margin-top: 2rem;
+      background: #e81123;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #b50d1e;
+    }
+    .upload-section {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #f9fafc;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .upload-section label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .upload-section input[type="file"],
+    .upload-section input[type="text"] {
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .upload-section button {
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .upload-section button:hover {
+      background: #005fa3;
+    }
+    .pdf-list-section {
+      margin-top: 2.5rem;
+    }
+    .pdf-list-section h3 {
+      margin-bottom: 1rem;
+      color: #2d3a4b;
+    }
+    .pdf-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .pdf-list li {
+      background: #f0f4fa;
+      margin-bottom: 0.7rem;
+      padding: 0.8rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pdf-list a {
+      color: #0078d4;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .pdf-list .desc {
+      font-size: 0.95em;
+      color: #666;
+      margin-left: 1rem;
+      flex: 1;
+    }
+    .filter-section {
+      margin: 2rem 0 1.5rem 0;
+      padding: 1rem 1.5rem;
+      background: #f9fafc;
+      border-radius: 8px;
+      text-align: left;
+    }
+    .filter-section h3 {
+      margin-top: 0;
+    }
+    .filter-section form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .filter-section input,
+    .filter-section select {
+      flex: 1 1 220px;
+      min-width: 180px;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .filter-section button {
+      flex: 1 1 80px;
+      min-width: 80px;
+      align-self: end;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .filter-section button:hover {
+      background: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="User Avatar">
+      <span class="user-name" id="userName">Welcome!</span>
+    </div>
+    <div class="user-details" id="userDetails"></div>
+
+    <div class="upload-section">
+      <h3>Upload PDF</h3>
+      <form id="uploadPdfForm">
+        <label for="pdfFile">Select PDF:</label>
+        <input type="file" id="pdfFile" name="pdf" accept="application/pdf" required>
+        <label for="pdfDesc">Description:</label>
+        <input type="text" id="pdfDesc" name="description" placeholder="Enter description (optional)">
+        <label>Status:</label>
+        <label><input type="radio" name="status" value="active" required> Active</label>
+        <label><input type="radio" name="status" value="past"> Past</label>
+        <label><input type="radio" name="status" value="upcoming"> Upcoming</label>
+        <label for="bolt_hole_size">Bolt Hole Size:</label>
+        <input type="text" id="bolt_hole_size" name="bolt_hole_size">
+        <label for="bolt_pattern">Bolt Pattern:</label>
+        <input type="text" id="bolt_pattern" name="bolt_pattern">
+        <label for="bolt_circle_diameter">Bolt Circle Diameter:</label>
+        <input type="text" id="bolt_circle_diameter" name="bolt_circle_diameter">
+        <label for="bolt_hole_style">Bolt Hole Style:</label>
+        <input type="text" id="bolt_hole_style" name="bolt_hole_style">
+        <button type="submit">Upload PDF</button>
+      </form>
+      <div id="uploadMsg" style="margin-top:1rem;color:#e81123;"></div>
+    </div>
+
+    <div class="filter-section">
+      <h3>Filter PDFs</h3>
+      <form id="filterPdfForm">
+        <div>
+          <input type="text" name="filename" placeholder="PDF Name">
+        </div>
+        <div>
+          <input type="text" name="description" placeholder="Description">
+        </div>
+        <div>
+          <select name="status">
+            <option value="">Status</option>
+            <option value="active">Active</option>
+            <option value="past">Past</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        </div>
+        <div>
+          <input type="text" name="bolt_hole_size" placeholder="Bolt Hole Size">
+        </div>
+        <div>
+          <input type="text" name="bolt_pattern" placeholder="Bolt Pattern">
+        </div>
+        <div>
+          <input type="text" name="bolt_circle_diameter" placeholder="Bolt Circle Diameter">
+        </div>
+        <div>
+          <input type="text" name="bolt_hole_style" placeholder="Bolt Hole Style">
+        </div>
+        <div>
+          <input type="date" name="from_date" placeholder="From Date">
+        </div>
+        <div>
+          <input type="date" name="to_date" placeholder="To Date">
+        </div>
+        <div>
+          <button type="submit">Filter</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="pdf-list-section">
+      <h3>Your Uploaded PDFs</h3>
+      <ul class="pdf-list" id="pdfList"></ul>
+    </div>
+
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+  <script>
+    // Helper to parse query params
+    function getQueryParams() {
+      const params = {};
+      window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str,key,value) {
+        params[key] = decodeURIComponent(value);
+      });
+      return params;
+    }
+
+    let user = null;
+    let userEmail = null;
+
+    // Fetch and display all PDFs for all users, filter only by selected fields (not by email)
+    async function fetchAndShowPdfs(filters = {}) {
+      // Only add filter params for fields with values
+      const filterParams = [];
+      for (const key in filters) {
+        if (filters[key]) filterParams.push(`${encodeURIComponent(key)}=${encodeURIComponent(filters[key])}`);
+      }
+      let url;
+      if (filterParams.length > 0) {
+        url = `/filter-pdfs-azure?${filterParams.join('&')}`;
+      } else {
+        url = `/all-pdfs-azure`;
+      }
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          // Show error in UI if endpoint not found or server error
+          document.getElementById('pdfList').innerHTML = "<li>Filter API not found or server error.</li>";
+          return;
+        }
+        const data = await res.json();
+        const pdfList = document.getElementById('pdfList');
+        pdfList.innerHTML = "";
+        const pdfs = data.pdfs || [];
+        console.log(pdfs,';;;;;;;;;')
+        if (pdfs.length > 0) {
+          pdfs.forEach((pdf, idx) => {
+            const desc = pdf.description || "NA";
+            const shortDesc = desc.length > 120 ? desc.substring(0, 120) + "..." : desc;
+            const showMore = desc.length > 120;
+            const card = document.createElement('li');
+            card.style.background = "#f0f4fa";
+            card.style.borderRadius = "10px";
+            card.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
+            card.style.padding = "1.2rem 1rem";
+            card.style.marginBottom = "1rem";
+            card.style.display = "flex";
+            card.style.flexDirection = "column";
+            card.style.gap = "0.5rem";
+            card.style.alignItems = "flex-start";
+            card.innerHTML = `
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="font-weight:600;color:#0078d4;">Status:</span>
+                <span>${pdf.status || "NA"}</span>
+                <div style="margin-left:auto;display:flex;gap:0.5rem;">
+                  <span style="cursor:pointer;" title="Edit PDF" id="edit-pdf-${idx}">
+                    <svg width="18" height="18" fill="#0078d4" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75l11.06-11.06-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>
+                  </span>
+                  <span style="cursor:pointer;" title="Delete PDF" id="delete-pdf-${idx}">
+                    <svg width="18" height="18" fill="#e81123" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div style="font-size:1.08em;">
+                <b>Description:</b>
+                <span id="desc-${idx}">${shortDesc}</span>
+                ${showMore ? `<a href="javascript:void(0);" id="toggle-desc-${idx}" style="color:#0078d4;text-decoration:underline;font-size:0.97em;">Show more</a>` : ""}
+              </div>
+              <div><b>Bolt Hole Size:</b> ${pdf.bolt_hole_size || "NA"}</div>
+              <div><b>Bolt Pattern:</b> ${pdf.bolt_pattern || "NA"}</div>
+              <div><b>Bolt Circle Diameter:</b> ${pdf.bolt_circle_diameter || "NA"}</div>
+              <div><b>Bolt Hole Style:</b> ${pdf.bolt_hole_style || "NA"}</div>
+              <div><b>Uploaded At:</b> ${pdf.uploadedAt ? new Date(pdf.uploadedAt).toLocaleString() : "NA"}</div>
+              <div><a href="${pdf.blobUrl}" target="_blank" style="color:#0078d4;">View PDF</a></div>
+            `;
+            pdfList.appendChild(card);
+
+            // Show more/less functionality
+            if (showMore) {
+              const toggle = card.querySelector(`#toggle-desc-${idx}`);
+              const descSpan = card.querySelector(`#desc-${idx}`);
+              let expanded = false;
+              toggle.onclick = function() {
+                expanded = !expanded;
+                descSpan.textContent = expanded ? desc : desc.substring(0, 120) + "...";
+                toggle.textContent = expanded ? "Show less" : "Show more";
+              };
+            }
+
+            // Edit functionality
+            const editBtn = card.querySelector(`#edit-pdf-${idx}`);
+            if (editBtn) {
+              editBtn.onclick = function() {
+                // Set all fields in upload form
+                document.getElementById('pdfDesc').value = pdf.description || "";
+                if (pdf.status) {
+                  const statusRadio = document.querySelector(`input[name="status"][value="${pdf.status}"]`);
+                  if (statusRadio) statusRadio.checked = true;
+                }
+                document.getElementById('bolt_hole_size').value = pdf.bolt_hole_size || "";
+                document.getElementById('bolt_pattern').value = pdf.bolt_pattern || "";
+                document.getElementById('bolt_circle_diameter').value = pdf.bolt_circle_diameter || "";
+                document.getElementById('bolt_hole_style').value = pdf.bolt_hole_style || "";
+                // Store blobUrl for update
+                document.getElementById('uploadPdfForm').setAttribute('data-edit-bloburl', pdf.blobUrl);
+                document.getElementById('uploadPdfForm').setAttribute('data-edit-idx', idx);
+                // Change button text
+                document.querySelector('#uploadPdfForm button[type="submit"]').textContent = "Update PDF";
+                // Scroll to form
+                document.getElementById('uploadPdfForm').scrollIntoView({ behavior: "smooth" });
+              };
+            }
+
+            // Delete functionality
+            const deleteBtn = card.querySelector(`#delete-pdf-${idx}`);
+            if (deleteBtn) {
+              deleteBtn.onclick = async function() {
+                if (!confirm('Are you sure you want to delete this PDF? This action cannot be undone.')) {
+                  return;
+                }
+                
+                // Show loading state
+                const originalContent = deleteBtn.innerHTML;
+                deleteBtn.innerHTML = '<svg width="18" height="18" fill="#e81123" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"/><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>';
+                deleteBtn.style.pointerEvents = 'none';
+                deleteBtn.title = 'Deleting...';
+                
+                // Create status message element
+                let statusMsg = document.getElementById('delete-status-msg');
+                if (!statusMsg) {
+                  statusMsg = document.createElement('div');
+                  statusMsg.id = 'delete-status-msg';
+                  statusMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:1rem;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;max-width:300px;';
+                  document.body.appendChild(statusMsg);
+                }
+                statusMsg.innerHTML = '<div style="color:#0078d4;font-weight:600;">🗑️ Deleting PDF...</div>';
+                statusMsg.style.display = 'block';
+                
+                try {
+                  console.log('Attempting to delete PDF:', {
+                    email: userEmail,
+                    blobUrl: pdf.blobUrl,
+                    filename: pdf.filename
+                  });
+                  
+                  const res = await fetch('/delete-pdf-azure', {
+                    method: 'DELETE',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      email: userEmail,
+                      blobUrl: pdf.blobUrl
+                    })
+                  });
+                  
+                  console.log('Delete response status:', res.status);
+                  
+                  let data;
+                  try {
+                    data = await res.json();
+                    console.log('Delete response data:', data);
+                  } catch (parseErr) {
+                    console.error('Failed to parse response JSON:', parseErr);
+                    throw new Error('Server returned invalid response');
+                  }
+                  
+                  if (res.ok) {
+                    // Success
+                    statusMsg.innerHTML = '<div style="color:#107c10;font-weight:600;">✅ PDF deleted successfully!</div>';
+                    
+                    // Remove the card from UI immediately
+                    card.style.transition = 'opacity 0.3s ease';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                      card.remove();
+                      // Refresh the list to ensure consistency
+                      fetchAndShowPdfs();
+                    }, 300);
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                      statusMsg.style.display = 'none';
+                    }, 3000);
+                  } else {
+                    // Server error
+                    const errorMsg = data.error || 'Unknown server error';
+                    const details = data.details ? ` (${data.details})` : '';
+                    statusMsg.innerHTML = `<div style="color:#e81123;font-weight:600;">❌ Delete failed</div><div style="color:#666;font-size:0.9em;margin-top:0.5rem;">${errorMsg}${details}</div>`;
+                    console.error('Server error during delete:', data);
+                    
+                    // Reset delete button
+                    deleteBtn.innerHTML = originalContent;
+                    deleteBtn.style.pointerEvents = 'auto';
+                    deleteBtn.title = 'Delete PDF';
+                    
+                    // Hide error message after 5 seconds
+                    setTimeout(() => {
+                      statusMsg.style.display = 'none';
+                    }, 5000);
+                  }
+                } catch (err) {
+                  // Network or other error
+                  console.error('Delete error:', err);
+                  statusMsg.innerHTML = `<div style="color:#e81123;font-weight:600;">❌ Delete failed</div><div style="color:#666;font-size:0.9em;margin-top:0.5rem;">Network error: ${err.message}</div>`;
+                  
+                  // Reset delete button
+                  deleteBtn.innerHTML = originalContent;
+                  deleteBtn.style.pointerEvents = 'auto';
+                  deleteBtn.title = 'Delete PDF';
+                  
+                  // Hide error message after 5 seconds
+                  setTimeout(() => {
+                    statusMsg.style.display = 'none';
+                  }, 5000);
+                }
+              };
+            }
+          });
+        } else {
+          pdfList.innerHTML = "<li>No PDFs uploaded yet.</li>";
+        }
+      } catch (err) {
+        // Show error in UI if JSON parse or network error
+        document.getElementById('pdfList').innerHTML = "<li>Filter failed: " + (err.message || "Unknown error") + "</li>";
+        console.error("Filter fetch error:", err);
+      }
+    }
+
+    // On page load, always show user details and filter, even if no PDFs found
+    window.onload = function() {
+      const params = getQueryParams();
+      if (params.user) {
+        try {
+          user = JSON.parse(params.user);
+          userEmail = user.mail || user.userPrincipalName;
+          // Set avatar (fallback to initials)
+          const avatarUrl = user.displayName
+            ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}`
+            : "https://ui-avatars.com/api/?name=User";
+          document.getElementById('userAvatar').src = avatarUrl;
+          document.getElementById('userName').textContent = `Welcome, ${user.displayName || user.givenName || user.userPrincipalName}!`;
+          document.getElementById('userDetails').innerHTML = `
+            <b>Email:</b> ${userEmail}<br>
+            <b>ID:</b> ${user.id}<br>
+            <b>Job Title:</b> ${user.jobTitle || "-"}<br>
+            <b>Phone:</b> ${user.mobilePhone || "-"}<br>
+            <b>Department:</b> ${user.department || "-"}<br>
+            <b>Office Location:</b> ${user.officeLocation || "-"}<br>
+            <b>Preferred Language:</b> ${user.preferredLanguage || "-"}
+          `;
+          // Log full user details to console
+          console.log("Full user details:", user);
+          fetchAndShowPdfs();
+        } catch (e) {
+          document.getElementById('userDetails').innerHTML = "Failed to parse user info.";
+        }
+      } else {
+        document.getElementById('userDetails').innerHTML = "No user info found.";
+      }
+    };
+
+    document.getElementById('logoutBtn').onclick = function() {
+      window.location.href = "https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri=http://localhost:3000/frontend/index.html";
+    };
+
+    // Filter form logic: only send fields with values, always show user details and filter UI
+    document.getElementById('filterPdfForm').onsubmit = function(e) {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const filters = {};
+      for (const [key, value] of formData.entries()) {
+        if (value) filters[key] = value;
+      }
+      fetchAndShowPdfs(filters);
+    };
+
+    // Handle PDF upload and update
+    document.getElementById('uploadPdfForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const pdfFile = document.getElementById('pdfFile').files[0];
+      const description = document.getElementById('pdfDesc').value;
+      const status = document.querySelector('input[name="status"]:checked')?.value || "";
+      const bolt_hole_size = document.getElementById('bolt_hole_size').value;
+      const bolt_pattern = document.getElementById('bolt_pattern').value;
+      const bolt_circle_diameter = document.getElementById('bolt_circle_diameter').value;
+      const bolt_hole_style = document.getElementById('bolt_hole_style').value;
+      const blobUrl = document.getElementById('uploadPdfForm').getAttribute('data-edit-bloburl');
+      const isEdit = !!blobUrl;
+      if (!userEmail) return;
+
+      const formData = new FormData();
+      if (pdfFile) formData.append('pdf', pdfFile);
+      formData.append('email', userEmail);
+      formData.append('description', description);
+      formData.append('status', status);
+      formData.append('bolt_hole_size', bolt_hole_size);
+      formData.append('bolt_pattern', bolt_pattern);
+      formData.append('bolt_circle_diameter', bolt_circle_diameter);
+      formData.append('bolt_hole_style', bolt_hole_style);
+      if (isEdit) formData.append('blobUrl', blobUrl);
+
+      document.getElementById('uploadMsg').style.color = "#0078d4";
+      document.getElementById('uploadMsg').textContent = isEdit ? "Updating..." : "Uploading...";
+
+      try {
+        const url = isEdit ? '/edit-pdf-azure' : '/upload-pdf-azure';
+        const res = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('uploadMsg').style.color = "#0078d4";
+          document.getElementById('uploadMsg').textContent = isEdit ? "Updated successfully!" : "Upload successful!";
+          // Reset form state
+          document.getElementById('uploadPdfForm').removeAttribute('data-edit-bloburl');
+          document.getElementById('uploadPdfForm').removeAttribute('data-edit-idx');
+          document.querySelector('#uploadPdfForm button[type="submit"]').textContent = "Upload PDF";
+          document.getElementById('uploadPdfForm').reset();
+          // Wait a moment to ensure backend writes are complete, then refresh UI
+          setTimeout(() => {
+            fetchAndShowPdfs();
+          }, 300);
+        } else {
+          console.error("Update/Upload error:", data);
+          document.getElementById('uploadMsg').style.color = "#e81123";
+          document.getElementById('uploadMsg').textContent = (data.error || "Upload failed.") +
+            (data.details ? " Details: " + data.details : "");
+        }
+      } catch (err) {
+        console.error("Update/Upload exception:", err);
+        document.getElementById('uploadMsg').style.color = "#e81123";
+        document.getElementById('uploadMsg').textContent = "Upload failed. " + (err.message || "");
+      }
+    };
+  </script>
+</body>
+</html>

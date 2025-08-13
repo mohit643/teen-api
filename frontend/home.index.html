@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TeenGin PDF Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f4f6fb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 2.5rem 2rem 2rem 2rem;
+    }
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .dashboard-header img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #e6e6e6;
+      object-fit: cover;
+    }
+    .dashboard-header .user-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d3a4b;
+    }
+    .user-details {
+      margin-top: 1.5rem;
+      background: #f0f4fa;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 1rem;
+      color: #2d3a4b;
+      word-break: break-all;
+    }
+    .logout-btn {
+      margin-top: 2rem;
+      background: #e81123;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #b50d1e;
+    }
+    .upload-section, .filter-section {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #f9fafc;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      text-align: left;
+    }
+    .upload-section h3, .filter-section h3 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #2d3a4b;
+    }
+    .upload-section label, .filter-section label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #2d3a4b;
+    }
+    .upload-section input[type="text"],
+    .upload-section input[type="file"],
+    .upload-section input[type="date"],
+    .upload-section select,
+    .filter-section input[type="text"],
+    .filter-section input[type="date"],
+    .filter-section select {
+      width: 100%;
+      padding: 0.7rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .upload-section button, .filter-section button {
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .upload-section button:hover, .filter-section button:hover {
+      background: #005fa3;
+    }
+    .pdf-list-section {
+      margin-top: 2.5rem;
+      overflow-x: auto;
+    }
+    .pdf-list-section h3 {
+      margin-bottom: 1rem;
+      color: #2d3a4b;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td {
+      padding: 8px 6px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 0.97rem;
+    }
+    th {
+      background: #f0f4fa;
+      font-weight: 600;
+    }
+    @media (max-width: 900px) {
+      .container { padding: 1rem; }
+      th, td { font-size: 0.93rem; }
+    }
+    @media (max-width: 600px) {
+      .container { padding: 0.5rem; }
+      .dashboard-header { flex-direction: column; align-items: flex-start; }
+      th, td { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="dashboard-header">
+      <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="User Avatar">
+      <span class="user-name" id="userName">Welcome!</span>
+    </div>
+    <div class="user-details" id="userDetails"></div>
+
+    <div class="upload-section">
+      <h3>Upload PDF</h3>
+      <form id="uploadPdfForm">
+        <label for="pdfFile">Select PDF:</label>
+        <input type="file" id="pdfFile" name="pdf" accept="application/pdf" required>
+        <label for="pdfDesc">Description:</label>
+        <input type="text" id="pdfDesc" name="description" placeholder="Enter description (optional)">
+        <label>Status:</label>
+        <label><input type="radio" name="status" value="active" required> Active</label>
+        <label><input type="radio" name="status" value="past"> Past</label>
+        <label><input type="radio" name="status" value="upcoming"> Upcoming</label>
+        <label for="bolt_hole_size">Bolt Hole Size:</label>
+        <input type="text" id="bolt_hole_size" name="bolt_hole_size">
+        <label for="bolt_pattern">Bolt Pattern:</label>
+        <input type="text" id="bolt_pattern" name="bolt_pattern">
+        <label for="bolt_circle_diameter">Bolt Circle Diameter:</label>
+        <input type="text" id="bolt_circle_diameter" name="bolt_circle_diameter">
+        <label for="bolt_hole_style">Bolt Hole Style:</label>
+        <input type="text" id="bolt_hole_style" name="bolt_hole_style">
+        <button type="submit">Upload PDF</button>
+      </form>
+      <div id="uploadMsg" style="margin-top:1rem;color:#e81123;"></div>
+    </div>
+
+    <div class="filter-section">
+      <h3>Filter PDFs</h3>
+      <form id="filterPdfForm" style="display:flex;flex-wrap:wrap;gap:1rem;">
+        <div style="flex:1 1 220px;min-width:180px;">
+          <input type="text" name="filename" placeholder="PDF Name">
+        </div>
+        <div style="flex:1 1 220px;min-width:180px;">
+          <input type="text" name="description" placeholder="Description">
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <select name="status">
+            <option value="">Status</option>
+            <option value="active">Active</option>
+            <option value="past">Past</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <input type="text" name="bolt_hole_size" placeholder="Bolt Hole Size">
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <input type="text" name="bolt_pattern" placeholder="Bolt Pattern">
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <input type="text" name="bolt_circle_diameter" placeholder="Bolt Circle Diameter">
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <input type="text" name="bolt_hole_style" placeholder="Bolt Hole Style">
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <input type="date" name="from_date" placeholder="From Date">
+        </div>
+        <div style="flex:1 1 120px;min-width:120px;">
+          <input type="date" name="to_date" placeholder="To Date">
+        </div>
+        <div style="flex:1 1 80px;min-width:80px;align-self:end;">
+          <button type="submit" style="width:100%;">Filter</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="pdfListSection"></div>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+  <script>
+    // ...copy the JS logic for upload/filter/pdf list from your previous home.html here...
+  </script>
+</body>
+</html>

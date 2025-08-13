@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TeenGin Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f4f6fb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-container {
+      background: #fff;
+      padding: 2.5rem 2rem 2rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      width: 350px;
+      text-align: center;
+    }
+    .login-container h2 {
+      margin-bottom: 1.5rem;
+      color: #2d3a4b;
+    }
+    .ms-login-btn {
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.9rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .ms-login-btn:hover {
+      background: #005fa3;
+    }
+    .user-info {
+      margin-top: 1.5rem;
+      background: #f0f4fa;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: left;
+      font-size: 0.97rem;
+      color: #2d3a4b;
+      word-break: break-all;
+    }
+    .ms-logo {
+      width: 22px;
+      height: 22px;
+      vertical-align: middle;
+    }
+    .logout-btn {
+      margin-top: 1.5rem;
+      background: #e81123;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #b50d1e;
+    }
+    .success-title {
+      color: #0078d4;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginContainer">
+    <h2>TeenGin Portal Login</h2>
+    <button class="ms-login-btn" id="msLoginBtn">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" class="ms-logo" alt="Microsoft Logo">
+      Login with Microsoft
+    </button>
+    <div id="userInfo" class="user-info" style="display:none;"></div>
+    <button class="logout-btn" id="logoutBtn" style="display:none;">Logout</button>
+  </div>
+  <script>
+    // Helper to parse query params
+    function getQueryParams() {
+      const params = {};
+      window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str,key,value) {
+        params[key] = decodeURIComponent(value);
+      });
+      return params;
+    }
+
+    // On login button click, redirect to backend /login
+    document.getElementById('msLoginBtn').onclick = function() {
+    //window.location.href = "/login";
+    //  window.location.href = "http://localhost:3000/loginhttp://localhost:3000/login";
+      window.location.href = "http://localhost:3000/login";
+    };
+
+    document.getElementById('logoutBtn').onclick = function() {
+      window.location.href = "https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri=http://localhost:3000/frontend/index.html";
+    };
+
+    // Display user info
+    function showUserInfo(user) {
+      const userInfoDiv = document.getElementById('userInfo');
+      userInfoDiv.style.display = "block";
+      userInfoDiv.innerHTML = `
+        <strong>Welcome, ${user.displayName || user.givenName || user.userPrincipalName}!</strong><br>
+        <b>Email:</b> ${user.mail || user.userPrincipalName}<br>
+        <b>ID:</b> ${user.id}<br>
+        <b>Job Title:</b> ${user.jobTitle || "-"}<br>
+        <b>Phone:</b> ${user.mobilePhone || "-"}
+      `;
+    }
+
+    // Fetch and display all PDFs for the user (with all metadata)
+    async function fetchAndShowPdfs() {
+      const user = getQueryParams().user ? JSON.parse(getQueryParams().user) : null;
+      const userEmail = user ? (user.mail || user.userPrincipalName) : null;
+      if (!userEmail) return;
+      const res = await fetch(`/all-pdfs-azure?email=${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+      console.log("All PDF metadata for user:", data.pdfs); // <-- log all metadata to console
+      let html = "<h3>Your Uploaded PDFs</h3>";
+      if (data.pdfs && data.pdfs.length > 0) {
+        html += `<table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f0f4fa;">
+              <th style="padding:6px;border:1px solid #ddd;">PDF Name</th>
+              <th style="padding:6px;border:1px solid #ddd;">Description</th>
+              <th style="padding:6px;border:1px solid #ddd;">Email</th>
+              <th style="padding:6px;border:1px solid #ddd;">Uploaded At</th>
+              <th style="padding:6px;border:1px solid #ddd;">Link</th>
+            </tr>
+          </thead>
+          <tbody>`;
+        data.pdfs.forEach(pdf => {
+          html += `<tr>
+            <td style="padding:6px;border:1px solid #ddd;">${pdf.filename}</td>
+            <td style="padding:6px;border:1px solid #ddd;">${pdf.description || ""}</td>
+            <td style="padding:6px;border:1px solid #ddd;">${pdf.user || ""}</td>
+            <td style="padding:6px;border:1px solid #ddd;">${pdf.uploadedAt ? new Date(pdf.uploadedAt).toLocaleString() : ""}</td>
+            <td style="padding:6px;border:1px solid #ddd;"><a href="${pdf.blobUrl}" target="_blank">View</a></td>
+          </tr>`;
+        });
+        html += "</tbody></table>";
+      } else {
+        html += "<div>No PDFs uploaded yet.</div>";
+      }
+      // Show in userInfo or a new section
+      let pdfListSection = document.getElementById('pdfListSection');
+      if (!pdfListSection) {
+        pdfListSection = document.createElement('div');
+        pdfListSection.id = 'pdfListSection';
+        document.querySelector('.login-container').appendChild(pdfListSection);
+      }
+      pdfListSection.innerHTML = html;
+    }
+
+    // Call fetchAndShowPdfs after login and after upload (if needed)
+    window.onload = function() {
+      const params = getQueryParams();
+      if (params.user) {
+        try {
+          const user = JSON.parse(params.user);
+          showUserInfo(user);
+          document.getElementById('msLoginBtn').style.display = 'none';
+          document.getElementById('logoutBtn').style.display = 'block';
+          document.querySelector('.login-container h2').innerHTML = '<span class="success-title">Logged in!</span>';
+          fetchAndShowPdfs();
+        } catch (e) {
+          document.getElementById('userInfo').innerHTML = "Failed to parse user info.";
+          document.getElementById('userInfo').style.display = "block";
+        }
+      }
+    };
+
+    // If you have an upload form, after successful upload, call fetchAndShowPdfs();
+  </script>
+</body>
+</html>
