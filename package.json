@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-  "start": "react-scripts start",
+  "start": "node index.js",
   "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 react-scripts build",
   "test": "echo \"Skipping tests\" && exit 0",
   "eject": "react-scripts eject"
