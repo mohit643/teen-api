@@ -292,7 +292,7 @@ router.get("/auth/redirect", async (req, res) => {
     // Redirect to frontend home page with user info as query param
     const userStr = encodeURIComponent(JSON.stringify(userResponse.data));
     res.redirect(
-      `https://asteritechnolo-f8ezevh0f5c4ezfv.canadacentral-01.azurewebsites.net/dashboard?user=${userStr}`
+      `https://remixfrontend-brbnd3hvaudwc0dw.canadacentral-01.azurewebsites.net/dashboard?user=${userStr}`
     );
   } catch (err) {
     console.error(
