@@ -11,7 +11,7 @@ const PORT = 3000;
 app.use(
   cors({
     origin:
-      "https://asteritechnolo-f8ezevh0f5c4ezfv.canadacentral-01.azurewebsites.net",
+      "http://remixfrontend-brbnd3hvaudwc0dw.canadacentral-01.azurewebsites.net",
   })
 );
 // Increase payload size limit for JSON and urlencoded
