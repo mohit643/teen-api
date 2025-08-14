@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node index.js",
     "build": "react-scripts build",
     "test": "echo \"Skipping tests\" && exit 0",
     "eject": "react-scripts eject"
