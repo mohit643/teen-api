@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.12.1
+          node-version: 20.0.0
 
       # 3. Dependencies install karo
       - name: Install dependencies
