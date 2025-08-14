@@ -1,0 +1,38 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main   # main branch pe push hone par deploy hoga
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Repo clone karo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Node.js setup karo
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.12.1
+
+      # 3. Dependencies install karo
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Server par deploy karo
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.SERVER_USER }}/teen-api
+            git pull origin main
+            npm install
+            pm2 restart backend || pm2 start server.js --name backend
