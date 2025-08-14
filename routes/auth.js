@@ -35,24 +35,24 @@ const pdfStorage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + "-" + file.originalname);
-  }
+  },
 });
 const upload = multer({ storage: pdfStorage });
 
 // Helper to sanitize Azure blob tag values (Azure has strict validation)
 function sanitizeTagValue(value) {
-  if (!value || typeof value !== 'string') return '';
-  
+  if (!value || typeof value !== "string") return "";
+
   // Azure blob tag restrictions:
   // - Max 256 characters
   // - Only alphanumeric, space, and these special chars: + - . / : = _
   // - No leading/trailing spaces
-  
+
   return value
     .substring(0, 256) // Limit length
-    .replace(/[^a-zA-Z0-9\s+\-./:=_]/g, '') // Remove invalid characters
+    .replace(/[^a-zA-Z0-9\s+\-./:=_]/g, "") // Remove invalid characters
     .trim(); // Remove leading/trailing spaces
 }
 
@@ -63,42 +63,53 @@ function getBlobServiceClientWithSAS() {
 }
 
 // Helper to upload file buffer to Azure Blob Storage using SAS with metadata
-async function uploadPdfToAzureWithSAS(userEmail, file, metadata = {}, filenameOverride) {
+async function uploadPdfToAzureWithSAS(
+  userEmail,
+  file,
+  metadata = {},
+  filenameOverride
+) {
   try {
     const blobServiceClient = getBlobServiceClientWithSAS();
-    const containerClient = blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
+    const containerClient =
+      blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
 
     // Ensure container exists (optional, but good for debugging)
     if (!(await containerClient.exists())) {
-      throw new Error(`Azure Blob container "${AZURE_BLOB_CONTAINER}" does not exist.`);
+      throw new Error(
+        `Azure Blob container "${AZURE_BLOB_CONTAINER}" does not exist.`
+      );
     }
 
-    const blobName = filenameOverride || `${userEmail}/${Date.now()}-${file.originalname}`;
+    const blobName =
+      filenameOverride || `${userEmail}/${Date.now()}-${file.originalname}`;
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
     // Upload the file
     await blockBlobClient.uploadData(file.buffer, {
-      blobHTTPHeaders: { blobContentType: file.mimetype }
+      blobHTTPHeaders: { blobContentType: file.mimetype },
     });
 
     // Set metadata as blob tags (Azure has strict validation rules)
     const tags = {
       email: sanitizeTagValue(userEmail),
-      description: sanitizeTagValue(metadata.description || ''),
-      status: sanitizeTagValue(metadata.status || ''),
-      bolt_hole_size: sanitizeTagValue(metadata.bolt_hole_size || ''),
-      bolt_pattern: sanitizeTagValue(metadata.bolt_pattern || ''),
-      bolt_circle_diameter: sanitizeTagValue(metadata.bolt_circle_diameter || ''),
-      bolt_hole_style: sanitizeTagValue(metadata.bolt_hole_style || ''),
-      uploadedAt: new Date().toISOString().replace(/[^0-9T:-]/g, '') // Remove invalid chars
+      description: sanitizeTagValue(metadata.description || ""),
+      status: sanitizeTagValue(metadata.status || ""),
+      bolt_hole_size: sanitizeTagValue(metadata.bolt_hole_size || ""),
+      bolt_pattern: sanitizeTagValue(metadata.bolt_pattern || ""),
+      bolt_circle_diameter: sanitizeTagValue(
+        metadata.bolt_circle_diameter || ""
+      ),
+      bolt_hole_style: sanitizeTagValue(metadata.bolt_hole_style || ""),
+      uploadedAt: new Date().toISOString().replace(/[^0-9T:-]/g, ""), // Remove invalid chars
     };
 
     // Remove empty tags
-    Object.keys(tags).forEach(key => {
+    Object.keys(tags).forEach((key) => {
       if (!tags[key] || tags[key].length === 0) delete tags[key];
     });
 
-    console.log('Setting Azure blob tags:', tags);
+    console.log("Setting Azure blob tags:", tags);
     await blockBlobClient.setTags(tags);
     console.log(`Uploaded PDF with metadata: ${blobName}`);
 
@@ -113,48 +124,56 @@ async function uploadPdfToAzureWithSAS(userEmail, file, metadata = {}, filenameO
 async function getAllPdfsFromAzure() {
   try {
     const blobServiceClient = getBlobServiceClientWithSAS();
-    const containerClient = blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
-    
+    const containerClient =
+      blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
+
     const pdfs = [];
-    
+
     // List all blobs in the container
-    for await (const blob of containerClient.listBlobsFlat({ includeMetadata: true, includeTags: true })) {
+    for await (const blob of containerClient.listBlobsFlat({
+      includeMetadata: true,
+      includeTags: true,
+    })) {
       try {
         const blockBlobClient = containerClient.getBlockBlobClient(blob.name);
         const blobUrl = blockBlobClient.url;
-        
+
         // Get blob tags (metadata)
         const tagsResponse = await blockBlobClient.getTags();
         const tags = tagsResponse.tags || {};
-        
+
         // Extract email from blob path or tags
-        const email = tags.email || blob.name.split('/')[0]?.replace('%40', '@') || '';
-        
+        const email =
+          tags.email || blob.name.split("/")[0]?.replace("%40", "@") || "";
+
         const pdfData = {
-          filename: blob.name.split('/').pop() || blob.name,
+          filename: blob.name.split("/").pop() || blob.name,
           blobUrl: blobUrl,
           email: email,
-          description: tags.description || '',
-          status: tags.status || '',
-          bolt_hole_size: tags.bolt_hole_size || '',
-          bolt_pattern: tags.bolt_pattern || '',
-          bolt_circle_diameter: tags.bolt_circle_diameter || '',
-          bolt_hole_style: tags.bolt_hole_style || '',
-          uploadedAt: tags.uploadedAt || blob.properties.lastModified?.toISOString() || new Date().toISOString(),
-          otherInfo: {}
+          description: tags.description || "",
+          status: tags.status || "",
+          bolt_hole_size: tags.bolt_hole_size || "",
+          bolt_pattern: tags.bolt_pattern || "",
+          bolt_circle_diameter: tags.bolt_circle_diameter || "",
+          bolt_hole_style: tags.bolt_hole_style || "",
+          uploadedAt:
+            tags.uploadedAt ||
+            blob.properties.lastModified?.toISOString() ||
+            new Date().toISOString(),
+          otherInfo: {},
         };
-        
+
         pdfs.push(pdfData);
       } catch (blobError) {
         console.error(`Error processing blob ${blob.name}:`, blobError.message);
         // Continue with other blobs
       }
     }
-    
+
     console.log(`Retrieved ${pdfs.length} PDFs from Azure`);
     return pdfs;
   } catch (err) {
-    console.error('Error getting PDFs from Azure:', err);
+    console.error("Error getting PDFs from Azure:", err);
     throw err;
   }
 }
@@ -162,35 +181,43 @@ async function getAllPdfsFromAzure() {
 async function updatePdfMetadataInAzure(blobUrl, metadata) {
   try {
     const url = new URL(blobUrl);
-    const blobName = decodeURIComponent(url.pathname.replace(`/${AZURE_BLOB_CONTAINER}/`, ''));
-    
+    const blobName = decodeURIComponent(
+      url.pathname.replace(`/${AZURE_BLOB_CONTAINER}/`, "")
+    );
+
     const blobServiceClient = getBlobServiceClientWithSAS();
-    const containerClient = blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
+    const containerClient =
+      blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-    
+
     // Convert metadata to tags (Azure tags have limitations)
     const tags = {
-      email: sanitizeTagValue(metadata.email || ''),
-      description: sanitizeTagValue(metadata.description || ''),
-      status: sanitizeTagValue(metadata.status || ''),
-      bolt_hole_size: sanitizeTagValue(metadata.bolt_hole_size || ''),
-      bolt_pattern: sanitizeTagValue(metadata.bolt_pattern || ''),
-      bolt_circle_diameter: sanitizeTagValue(metadata.bolt_circle_diameter || ''),
-      bolt_hole_style: sanitizeTagValue(metadata.bolt_hole_style || ''),
-      uploadedAt: (metadata.uploadedAt || new Date().toISOString()).replace(/[^0-9T:-]/g, '')
+      email: sanitizeTagValue(metadata.email || ""),
+      description: sanitizeTagValue(metadata.description || ""),
+      status: sanitizeTagValue(metadata.status || ""),
+      bolt_hole_size: sanitizeTagValue(metadata.bolt_hole_size || ""),
+      bolt_pattern: sanitizeTagValue(metadata.bolt_pattern || ""),
+      bolt_circle_diameter: sanitizeTagValue(
+        metadata.bolt_circle_diameter || ""
+      ),
+      bolt_hole_style: sanitizeTagValue(metadata.bolt_hole_style || ""),
+      uploadedAt: (metadata.uploadedAt || new Date().toISOString()).replace(
+        /[^0-9T:-]/g,
+        ""
+      ),
     };
-    
+
     // Remove empty tags
-    Object.keys(tags).forEach(key => {
+    Object.keys(tags).forEach((key) => {
       if (!tags[key] || tags[key].length === 0) delete tags[key];
     });
-    
-    console.log('Updating Azure blob tags:', tags);
+
+    console.log("Updating Azure blob tags:", tags);
     await blockBlobClient.setTags(tags);
     console.log(`Updated metadata for blob: ${blobName}`);
     return true;
   } catch (err) {
-    console.error('Error updating PDF metadata in Azure:', err);
+    console.error("Error updating PDF metadata in Azure:", err);
     throw err;
   }
 }
@@ -215,7 +242,7 @@ function ensurePdfFields(pdf) {
 
 // === Step 1: Redirect user to Microsoft login ===
 router.get("/login", (req, res) => {
-  console.log('GET /login endpoint hit');
+  console.log("GET /login endpoint hit");
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: "code",
@@ -225,7 +252,7 @@ router.get("/login", (req, res) => {
   });
 
   const authUrl = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize?${params}`;
-  console.log(authUrl, 'lllllllllllll');
+  console.log(authUrl, "lllllllllllll");
   res.redirect(authUrl);
 });
 
@@ -253,17 +280,25 @@ router.get("/auth/redirect", async (req, res) => {
 
     const { access_token } = tokenResponse.data;
 
-    const userResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    });
+    const userResponse = await axios.get(
+      "https://graph.microsoft.com/v1.0/me",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
 
     // Redirect to frontend home page with user info as query param
     const userStr = encodeURIComponent(JSON.stringify(userResponse.data));
-    res.redirect(`/frontend/home.html?user=${userStr}`);
+    res.redirect(
+      `https://asteritechnolo-f8ezevh0f5c4ezfv.canadacentral-01.azurewebsites.net/dashboard?user=${userStr}`
+    );
   } catch (err) {
-    console.error("Error during token exchange or user fetch", err.response?.data || err.message);
+    console.error(
+      "Error during token exchange or user fetch",
+      err.response?.data || err.message
+    );
     res.status(500).send("Authentication failed");
   }
 });
@@ -297,11 +332,14 @@ router.post("/login", async (req, res) => {
     const { access_token } = tokenResponse.data;
     console.log("Access token received:", access_token);
 
-    const userResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    });
+    const userResponse = await axios.get(
+      "https://graph.microsoft.com/v1.0/me",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
 
     res.json({
       message: "Login successful",
@@ -309,7 +347,9 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Azure AD login error", err.response?.data || err.message);
-    res.status(401).json({ error: "Invalid credentials or authentication failed" });
+    res
+      .status(401)
+      .json({ error: "Invalid credentials or authentication failed" });
   }
 });
 
@@ -341,11 +381,14 @@ router.post("/user-login", async (req, res) => {
     const { access_token } = tokenResponse.data;
 
     // Fetch user profile using access_token
-    const userResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    });
+    const userResponse = await axios.get(
+      "https://graph.microsoft.com/v1.0/me",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
 
     res.json({
       message: "Login successful",
@@ -354,7 +397,9 @@ router.post("/user-login", async (req, res) => {
     });
   } catch (err) {
     console.error("User login error", err.response?.data || err.message);
-    res.status(401).json({ error: "Invalid credentials or authentication failed" });
+    res
+      .status(401)
+      .json({ error: "Invalid credentials or authentication failed" });
   }
 });
 
@@ -417,8 +462,13 @@ router.get("/all-users", async (req, res) => {
       groups: groupsResponse.data.value,
     });
   } catch (err) {
-    console.error("Azure AD all users/roles/groups fetch error", err.response?.data || err.message);
-    res.status(401).json({ error: "Failed to fetch users or insufficient permissions" });
+    console.error(
+      "Azure AD all users/roles/groups fetch error",
+      err.response?.data || err.message
+    );
+    res
+      .status(401)
+      .json({ error: "Failed to fetch users or insufficient permissions" });
   }
 });
 
@@ -427,27 +477,12 @@ router.get("/all-users", async (req, res) => {
 const azureUpload = multer({ storage: multer.memoryStorage() });
 
 // --- Upload PDF to Azure Blob Storage, user-wise, using SAS token ===
-router.post("/upload-pdf-azure", azureUpload.single("pdf"), async (req, res) => {
-  const {
-    email,
-    description,
-    status,
-    bolt_hole_size,
-    bolt_pattern,
-    bolt_circle_diameter,
-    bolt_hole_style,
-    ...otherInfo
-  } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: "User email is required" });
-  }
-  if (!req.file) {
-    return res.status(400).json({ error: "PDF file is required" });
-  }
-
-  try {
-    // Prepare metadata
-    const metadata = {
+router.post(
+  "/upload-pdf-azure",
+  azureUpload.single("pdf"),
+  async (req, res) => {
+    const {
+      email,
       description,
       status,
       bolt_hole_size,
@@ -455,31 +490,56 @@ router.post("/upload-pdf-azure", azureUpload.single("pdf"), async (req, res) => 
       bolt_circle_diameter,
       bolt_hole_style,
       ...otherInfo
-    };
+    } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "User email is required" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "PDF file is required" });
+    }
 
-    const blobUrl = await uploadPdfToAzureWithSAS(email, req.file, metadata);
+    try {
+      // Prepare metadata
+      const metadata = {
+        description,
+        status,
+        bolt_hole_size,
+        bolt_pattern,
+        bolt_circle_diameter,
+        bolt_hole_style,
+        ...otherInfo,
+      };
 
-    // Return the PDF entry structure for consistency
-    const pdfEntry = {
-      filename: req.file.originalname,
-      blobUrl,
-      email,
-      description: description || '',
-      status: status || '',
-      bolt_hole_size: bolt_hole_size || '',
-      bolt_pattern: bolt_pattern || '',
-      bolt_circle_diameter: bolt_circle_diameter || '',
-      bolt_hole_style: bolt_hole_style || '',
-      otherInfo: otherInfo || {},
-      uploadedAt: new Date().toISOString(),
-    };
+      const blobUrl = await uploadPdfToAzureWithSAS(email, req.file, metadata);
 
-    res.json({ message: "PDF uploaded to Azure successfully", blobUrl, pdf: pdfEntry });
-  } catch (err) {
-    console.error("Azure Blob upload error", err.message, err);
-    res.status(500).json({ error: "Failed to upload PDF to Azure", details: err.message });
+      // Return the PDF entry structure for consistency
+      const pdfEntry = {
+        filename: req.file.originalname,
+        blobUrl,
+        email,
+        description: description || "",
+        status: status || "",
+        bolt_hole_size: bolt_hole_size || "",
+        bolt_pattern: bolt_pattern || "",
+        bolt_circle_diameter: bolt_circle_diameter || "",
+        bolt_hole_style: bolt_hole_style || "",
+        otherInfo: otherInfo || {},
+        uploadedAt: new Date().toISOString(),
+      };
+
+      res.json({
+        message: "PDF uploaded to Azure successfully",
+        blobUrl,
+        pdf: pdfEntry,
+      });
+    } catch (err) {
+      console.error("Azure Blob upload error", err.message, err);
+      res
+        .status(500)
+        .json({ error: "Failed to upload PDF to Azure", details: err.message });
+    }
   }
-});
+);
 
 // === Get all PDFs from Azure (replaces local JSON) ===
 router.get("/all-pdfs-azure", async (req, res) => {
@@ -490,7 +550,9 @@ router.get("/all-pdfs-azure", async (req, res) => {
     res.json({ pdfs });
   } catch (err) {
     console.error("Error fetching PDFs from Azure:", err);
-    res.status(500).json({ error: "Failed to fetch PDFs from Azure", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Failed to fetch PDFs from Azure", details: err.message });
   }
 });
 
@@ -507,28 +569,74 @@ router.get("/filter-pdfs-azure", async (req, res) => {
     from_date,
     to_date,
   } = req.query;
-  
+
   try {
     console.log("Fetching and filtering PDFs from Azure...");
     let pdfs = await getAllPdfsFromAzure();
     console.log(`Retrieved ${pdfs.length} PDFs from Azure for filtering`);
 
     // Only filter by fields that are present in the query
-    if (filename) pdfs = pdfs.filter(m => m.filename && m.filename.toLowerCase().includes(filename.toLowerCase()));
-    if (description) pdfs = pdfs.filter(m => m.description && m.description.toLowerCase().includes(description.toLowerCase()));
-    if (status) pdfs = pdfs.filter(m => m.status && m.status.toLowerCase() === status.toLowerCase());
-    if (bolt_hole_size) pdfs = pdfs.filter(m => m.bolt_hole_size && m.bolt_hole_size.toLowerCase().includes(bolt_hole_size.toLowerCase()));
-    if (bolt_pattern) pdfs = pdfs.filter(m => m.bolt_pattern && m.bolt_pattern.toLowerCase().includes(bolt_pattern.toLowerCase()));
-    if (bolt_circle_diameter) pdfs = pdfs.filter(m => m.bolt_circle_diameter && m.bolt_circle_diameter.toLowerCase().includes(bolt_circle_diameter.toLowerCase()));
-    if (bolt_hole_style) pdfs = pdfs.filter(m => m.bolt_hole_style && m.bolt_hole_style.toLowerCase().includes(bolt_hole_style.toLowerCase()));
-    if (from_date) pdfs = pdfs.filter(m => m.uploadedAt && new Date(m.uploadedAt) >= new Date(from_date));
-    if (to_date) pdfs = pdfs.filter(m => m.uploadedAt && new Date(m.uploadedAt) <= new Date(to_date));
+    if (filename)
+      pdfs = pdfs.filter(
+        (m) =>
+          m.filename &&
+          m.filename.toLowerCase().includes(filename.toLowerCase())
+      );
+    if (description)
+      pdfs = pdfs.filter(
+        (m) =>
+          m.description &&
+          m.description.toLowerCase().includes(description.toLowerCase())
+      );
+    if (status)
+      pdfs = pdfs.filter(
+        (m) => m.status && m.status.toLowerCase() === status.toLowerCase()
+      );
+    if (bolt_hole_size)
+      pdfs = pdfs.filter(
+        (m) =>
+          m.bolt_hole_size &&
+          m.bolt_hole_size.toLowerCase().includes(bolt_hole_size.toLowerCase())
+      );
+    if (bolt_pattern)
+      pdfs = pdfs.filter(
+        (m) =>
+          m.bolt_pattern &&
+          m.bolt_pattern.toLowerCase().includes(bolt_pattern.toLowerCase())
+      );
+    if (bolt_circle_diameter)
+      pdfs = pdfs.filter(
+        (m) =>
+          m.bolt_circle_diameter &&
+          m.bolt_circle_diameter
+            .toLowerCase()
+            .includes(bolt_circle_diameter.toLowerCase())
+      );
+    if (bolt_hole_style)
+      pdfs = pdfs.filter(
+        (m) =>
+          m.bolt_hole_style &&
+          m.bolt_hole_style
+            .toLowerCase()
+            .includes(bolt_hole_style.toLowerCase())
+      );
+    if (from_date)
+      pdfs = pdfs.filter(
+        (m) => m.uploadedAt && new Date(m.uploadedAt) >= new Date(from_date)
+      );
+    if (to_date)
+      pdfs = pdfs.filter(
+        (m) => m.uploadedAt && new Date(m.uploadedAt) <= new Date(to_date)
+      );
 
     console.log(`Filtered to ${pdfs.length} PDFs`);
     res.json({ pdfs });
   } catch (err) {
     console.error("Error filtering PDFs from Azure:", err);
-    res.status(500).json({ error: "Failed to filter PDFs from Azure", details: err.message });
+    res.status(500).json({
+      error: "Failed to filter PDFs from Azure",
+      details: err.message,
+    });
   }
 });
 
@@ -546,15 +654,19 @@ router.post("/edit-pdf-azure", azureUpload.single("pdf"), async (req, res) => {
     ...otherInfo
   } = req.body;
   if (!email || !blobUrl) {
-    return res.status(400).json({ error: "User email and blobUrl are required" });
+    return res
+      .status(400)
+      .json({ error: "User email and blobUrl are required" });
   }
 
   try {
     console.log("Editing PDF in Azure:", { email, blobUrl });
-    
+
     // Extract blob name from blobUrl
     const url = new URL(blobUrl);
-    const blobName = decodeURIComponent(url.pathname.replace(`/${AZURE_BLOB_CONTAINER}/`, ""));
+    const blobName = decodeURIComponent(
+      url.pathname.replace(`/${AZURE_BLOB_CONTAINER}/`, "")
+    );
 
     // If a new file is uploaded, overwrite the existing blob with metadata
     if (req.file) {
@@ -565,7 +677,7 @@ router.post("/edit-pdf-azure", azureUpload.single("pdf"), async (req, res) => {
         bolt_pattern,
         bolt_circle_diameter,
         bolt_hole_style,
-        ...otherInfo
+        ...otherInfo,
       };
       await uploadPdfToAzureWithSAS(email, req.file, metadata, blobName);
     } else {
@@ -579,7 +691,7 @@ router.post("/edit-pdf-azure", azureUpload.single("pdf"), async (req, res) => {
         bolt_circle_diameter,
         bolt_hole_style,
         uploadedAt: new Date().toISOString(),
-        ...otherInfo
+        ...otherInfo,
       };
       await updatePdfMetadataInAzure(blobUrl, metadata);
     }
@@ -588,7 +700,9 @@ router.post("/edit-pdf-azure", azureUpload.single("pdf"), async (req, res) => {
     res.json({ message: "PDF updated in Azure successfully", blobUrl });
   } catch (err) {
     console.error("Azure Blob edit error", err.message, err);
-    res.status(500).json({ error: "Failed to update PDF in Azure", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Failed to update PDF in Azure", details: err.message });
   }
 });
 
@@ -622,30 +736,38 @@ Summary:
 router.delete("/delete-pdf-azure", async (req, res) => {
   console.log("DELETE /delete-pdf-azure endpoint hit", req.body);
   const { email, blobUrl } = req.body;
-  
+
   if (!email || !blobUrl) {
-    console.log("Delete request missing required fields:", { email: !!email, blobUrl: !!blobUrl });
-    return res.status(400).json({ error: "User email and blobUrl are required" });
+    console.log("Delete request missing required fields:", {
+      email: !!email,
+      blobUrl: !!blobUrl,
+    });
+    return res
+      .status(400)
+      .json({ error: "User email and blobUrl are required" });
   }
 
   try {
     console.log("Starting delete process for:", { email, blobUrl });
-    
+
     // Extract blob name from blobUrl
     const url = new URL(blobUrl);
-    const blobName = decodeURIComponent(url.pathname.replace(`/${AZURE_BLOB_CONTAINER}/`, ""));
+    const blobName = decodeURIComponent(
+      url.pathname.replace(`/${AZURE_BLOB_CONTAINER}/`, "")
+    );
     console.log("Extracted blob name:", blobName);
 
     // Delete from Azure Blob Storage
     console.log("Attempting to delete from Azure Blob Storage...");
     const blobServiceClient = getBlobServiceClientWithSAS();
-    const containerClient = blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
+    const containerClient =
+      blobServiceClient.getContainerClient(AZURE_BLOB_CONTAINER);
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-    
+
     // Check if blob exists before deleting
     const exists = await blockBlobClient.exists();
     console.log("Blob exists in Azure:", exists);
-    
+
     if (exists) {
       await blockBlobClient.delete();
       console.log("Successfully deleted blob from Azure");
@@ -654,21 +776,21 @@ router.delete("/delete-pdf-azure", async (req, res) => {
     }
 
     console.log("PDF deleted from Azure successfully");
-    
-    res.json({ 
-      message: "PDF deleted successfully", 
-      deletedFromAzure: exists
+
+    res.json({
+      message: "PDF deleted successfully",
+      deletedFromAzure: exists,
     });
   } catch (err) {
     console.error("Azure Blob delete error (detailed):", {
       message: err.message,
       stack: err.stack,
-      name: err.name
+      name: err.name,
     });
-    res.status(500).json({ 
-      error: "Failed to delete PDF from Azure", 
+    res.status(500).json({
+      error: "Failed to delete PDF from Azure",
       details: err.message,
-      type: err.name || 'UnknownError'
+      type: err.name || "UnknownError",
     });
   }
 });
