@@ -3,28 +3,28 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - main   # main branch pe push hone par deploy hoga
+      - main  # Deploy when pushing to main branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-      # 1. Repo clone karo
+      # 1. Clone repo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Node.js setup karo
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.0.0
 
-      # 3. Dependencies install karo
+      # 3. Install dependencies locally (optional if you build before deploying)
       - name: Install dependencies
         run: npm install
 
-      # 4. Server par deploy karo
+      # 4. Deploy to Server via SSH
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -35,4 +35,15 @@ jobs:
             cd /home/${{ secrets.SERVER_USER }}/teen-api
             git pull origin main
             npm install
+            
+            # Create .env file from GitHub Secrets
+            echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" > .env
+            echo "REDIRECT_URI=${{ secrets.REDIRECT_URI }}" >> .env
+            echo "CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}" >> .env
+            echo "TENANT_ID=${{ secrets.TENANT_ID }}" >> .env
+            echo "AZURE_STORAGE_ACCOUNT=${{ secrets.AZURE_STORAGE_ACCOUNT }}" >> .env
+            echo "AZURE_BLOB_CONTAINER=${{ secrets.AZURE_BLOB_CONTAINER }}" >> .env
+            echo "AZURE_SAS_TOKEN=${{ secrets.AZURE_SAS_TOKEN }}" >> .env
+
+            # Restart backend
             pm2 restart backend || pm2 start server.js --name backend
